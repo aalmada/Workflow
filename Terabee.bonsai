@@ -1,0 +1,241 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<WorkflowBuilder Version="2.5.0"
+                 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                 xmlns:osc="clr-namespace:Bonsai.Osc;assembly=Bonsai.Osc"
+                 xmlns:p1="clr-namespace:Bonsai.OpenNI;assembly=Bonsai.OpenNI"
+                 xmlns:dsp="clr-namespace:Bonsai.Dsp;assembly=Bonsai.Dsp"
+                 xmlns:rx="clr-namespace:Bonsai.Reactive;assembly=Bonsai.Core"
+                 xmlns:cv="clr-namespace:Bonsai.Vision;assembly=Bonsai.Vision"
+                 xmlns="https://bonsai-rx.org/2018/workflow">
+  <Workflow>
+    <Nodes>
+      <Expression xsi:type="Combinator">
+        <Combinator xsi:type="osc:CreateUdpClient">
+          <osc:Name>Mirror</osc:Name>
+          <osc:Port>0</osc:Port>
+          <osc:RemotePort>0</osc:RemotePort>
+        </Combinator>
+      </Expression>
+      <Expression xsi:type="Combinator">
+        <Combinator xsi:type="p1:Device">
+          <p1:Index>0</p1:Index>
+        </Combinator>
+      </Expression>
+      <Expression xsi:type="Combinator">
+        <Combinator xsi:type="p1:VideoStream">
+          <p1:Mirroring>true</p1:Mirroring>
+          <p1:Size>
+            <p1:Width>80</p1:Width>
+            <p1:Height>60</p1:Height>
+          </p1:Size>
+          <p1:Crop>true</p1:Crop>
+          <p1:CropRectangle>
+            <p1:Location>
+              <p1:X>10</p1:X>
+              <p1:Y>10</p1:Y>
+            </p1:Location>
+            <p1:Size>
+              <p1:Width>60</p1:Width>
+              <p1:Height>40</p1:Height>
+            </p1:Size>
+            <p1:X>10</p1:X>
+            <p1:Y>10</p1:Y>
+            <p1:Width>60</p1:Width>
+            <p1:Height>40</p1:Height>
+          </p1:CropRectangle>
+        </Combinator>
+      </Expression>
+      <Expression xsi:type="GroupWorkflow">
+        <Workflow>
+          <Nodes>
+            <Expression xsi:type="Combinator">
+              <Combinator xsi:type="IntProperty">
+                <Value>2000</Value>
+              </Combinator>
+            </Expression>
+            <Expression xsi:type="PropertyMapping">
+              <PropertyMappings>
+                <Property Name="FarThresholdValue" />
+              </PropertyMappings>
+            </Expression>
+            <Expression xsi:type="WorkflowInput">
+              <Name>Source1</Name>
+            </Expression>
+            <Expression xsi:type="Combinator">
+              <Combinator xsi:type="p1:DepthTruncate">
+                <p1:NearThresholdValue>20</p1:NearThresholdValue>
+                <p1:FarThresholdValue>2000</p1:FarThresholdValue>
+              </Combinator>
+            </Expression>
+            <Expression xsi:type="PropertyMapping">
+              <PropertyMappings>
+                <Property Name="Max" />
+              </PropertyMappings>
+            </Expression>
+            <Expression xsi:type="Combinator">
+              <Combinator xsi:type="IntProperty">
+                <Value>100</Value>
+              </Combinator>
+            </Expression>
+            <Expression xsi:type="PropertyMapping">
+              <PropertyMappings>
+                <Property Name="Bins" />
+              </PropertyMappings>
+            </Expression>
+            <Expression xsi:type="Combinator">
+              <Combinator xsi:type="dsp:Histogram1D">
+                <dsp:Min>0</dsp:Min>
+                <dsp:Max>2000</dsp:Max>
+                <dsp:Bins>100</dsp:Bins>
+                <dsp:Normalize>true</dsp:Normalize>
+                <dsp:Accumulate>true</dsp:Accumulate>
+              </Combinator>
+            </Expression>
+            <Expression xsi:type="Combinator">
+              <Combinator xsi:type="dsp:Shift">
+                <dsp:Offset>
+                  <dsp:X>-10</dsp:X>
+                  <dsp:Y>0</dsp:Y>
+                </dsp:Offset>
+                <dsp:BorderType>Constant</dsp:BorderType>
+                <dsp:FillValue>
+                  <dsp:Val0>0</dsp:Val0>
+                  <dsp:Val1>0</dsp:Val1>
+                  <dsp:Val2>0</dsp:Val2>
+                  <dsp:Val3>0</dsp:Val3>
+                </dsp:FillValue>
+              </Combinator>
+            </Expression>
+            <Expression xsi:type="Combinator">
+              <Combinator xsi:type="dsp:Extrema" />
+            </Expression>
+            <Expression xsi:type="MemberSelector">
+              <Selector>MaxLocation.X</Selector>
+            </Expression>
+            <Expression xsi:type="Combinator">
+              <Combinator xsi:type="rx:Zip" />
+            </Expression>
+            <Expression xsi:type="Divide" />
+            <Expression xsi:type="PropertyMapping">
+              <PropertyMappings>
+                <Property Name="Value" />
+              </PropertyMappings>
+            </Expression>
+            <Expression xsi:type="Multiply">
+              <Operand xsi:type="IntProperty">
+                <Value>20</Value>
+              </Operand>
+            </Expression>
+            <Expression xsi:type="WorkflowOutput" />
+          </Nodes>
+          <Edges>
+            <Edge From="0" To="1" Label="Source1" />
+            <Edge From="0" To="4" Label="Source1" />
+            <Edge From="0" To="11" Label="Source1" />
+            <Edge From="1" To="3" Label="Source2" />
+            <Edge From="2" To="3" Label="Source1" />
+            <Edge From="3" To="7" Label="Source1" />
+            <Edge From="4" To="7" Label="Source2" />
+            <Edge From="5" To="6" Label="Source1" />
+            <Edge From="5" To="11" Label="Source2" />
+            <Edge From="6" To="7" Label="Source3" />
+            <Edge From="7" To="8" Label="Source1" />
+            <Edge From="8" To="9" Label="Source1" />
+            <Edge From="9" To="10" Label="Source1" />
+            <Edge From="10" To="14" Label="Source1" />
+            <Edge From="11" To="12" Label="Source1" />
+            <Edge From="12" To="13" Label="Source1" />
+            <Edge From="13" To="14" Label="Source2" />
+            <Edge From="14" To="15" Label="Source1" />
+          </Edges>
+        </Workflow>
+      </Expression>
+      <Expression xsi:type="PropertyMapping">
+        <PropertyMappings>
+          <Property Name="FarThresholdValue" />
+        </PropertyMappings>
+      </Expression>
+      <Expression xsi:type="Combinator">
+        <Combinator xsi:type="p1:DepthTruncate">
+          <p1:FarThresholdValue>340</p1:FarThresholdValue>
+          <p1:Binary>true</p1:Binary>
+          <p1:Convert8Bit>true</p1:Convert8Bit>
+        </Combinator>
+      </Expression>
+      <Expression xsi:type="Combinator">
+        <Combinator xsi:type="cv:FindContours">
+          <cv:Mode>External</cv:Mode>
+          <cv:Method>ChainApproxNone</cv:Method>
+          <cv:Offset>
+            <cv:X>0</cv:X>
+            <cv:Y>0</cv:Y>
+          </cv:Offset>
+          <cv:MinArea xsi:nil="true" />
+          <cv:MaxArea xsi:nil="true" />
+        </Combinator>
+      </Expression>
+      <Expression xsi:type="Combinator">
+        <Combinator xsi:type="cv:BinaryRegionAnalysis" />
+      </Expression>
+      <Expression xsi:type="Combinator">
+        <Combinator xsi:type="cv:LargestBinaryRegion" />
+      </Expression>
+      <Expression xsi:type="MemberSelector">
+        <Selector>Centroid</Selector>
+      </Expression>
+      <Expression xsi:type="Combinator">
+        <Combinator xsi:type="p1:SetOrigin" />
+      </Expression>
+      <Expression xsi:type="MemberSelector">
+        <Selector>Visible</Selector>
+      </Expression>
+      <Expression xsi:type="osc:SendMessage">
+        <osc:Connection>Mirror</osc:Connection>
+        <osc:Address>/on</osc:Address>
+      </Expression>
+      <Expression xsi:type="MemberSelector">
+        <Selector>Position.X</Selector>
+      </Expression>
+      <Expression xsi:type="osc:SendMessage">
+        <osc:Connection>Mirror</osc:Connection>
+        <osc:Address>/x</osc:Address>
+      </Expression>
+      <Expression xsi:type="MemberSelector">
+        <Selector>Position.Y</Selector>
+      </Expression>
+      <Expression xsi:type="osc:SendMessage">
+        <osc:Connection>Mirror</osc:Connection>
+        <osc:Address>/y</osc:Address>
+      </Expression>
+      <Expression xsi:type="Combinator">
+        <Combinator xsi:type="p1:VideoStream">
+          <p1:SensorType>Ir</p1:SensorType>
+          <p1:Mirroring>true</p1:Mirroring>
+          <p1:Size>
+            <p1:Width>80</p1:Width>
+            <p1:Height>60</p1:Height>
+          </p1:Size>
+        </Combinator>
+      </Expression>
+    </Nodes>
+    <Edges>
+      <Edge From="1" To="2" Label="Source1" />
+      <Edge From="1" To="17" Label="Source1" />
+      <Edge From="2" To="5" Label="Source1" />
+      <Edge From="2" To="3" Label="Source1" />
+      <Edge From="3" To="4" Label="Source1" />
+      <Edge From="4" To="5" Label="Source2" />
+      <Edge From="5" To="6" Label="Source1" />
+      <Edge From="6" To="7" Label="Source1" />
+      <Edge From="7" To="8" Label="Source1" />
+      <Edge From="8" To="9" Label="Source1" />
+      <Edge From="9" To="10" Label="Source1" />
+      <Edge From="10" To="11" Label="Source1" />
+      <Edge From="10" To="13" Label="Source1" />
+      <Edge From="10" To="15" Label="Source1" />
+      <Edge From="11" To="12" Label="Source1" />
+      <Edge From="13" To="14" Label="Source1" />
+      <Edge From="15" To="16" Label="Source1" />
+    </Edges>
+  </Workflow>
+</WorkflowBuilder>
