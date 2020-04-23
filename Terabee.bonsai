@@ -13,7 +13,8 @@
         <Combinator xsi:type="osc:CreateUdpClient">
           <osc:Name>Mirror</osc:Name>
           <osc:Port>0</osc:Port>
-          <osc:RemotePort>0</osc:RemotePort>
+          <osc:RemoteHostName>192.168.1.132</osc:RemoteHostName>
+          <osc:RemotePort>5903</osc:RemotePort>
         </Combinator>
       </Expression>
       <Expression xsi:type="Combinator">
@@ -55,22 +56,11 @@
             </Expression>
             <Expression xsi:type="PropertyMapping">
               <PropertyMappings>
-                <Property Name="FarThresholdValue" />
+                <Property Name="Max" />
               </PropertyMappings>
             </Expression>
             <Expression xsi:type="WorkflowInput">
               <Name>Source1</Name>
-            </Expression>
-            <Expression xsi:type="Combinator">
-              <Combinator xsi:type="p1:DepthTruncate">
-                <p1:NearThresholdValue>20</p1:NearThresholdValue>
-                <p1:FarThresholdValue>2000</p1:FarThresholdValue>
-              </Combinator>
-            </Expression>
-            <Expression xsi:type="PropertyMapping">
-              <PropertyMappings>
-                <Property Name="Max" />
-              </PropertyMappings>
             </Expression>
             <Expression xsi:type="Combinator">
               <Combinator xsi:type="IntProperty">
@@ -81,6 +71,25 @@
               <PropertyMappings>
                 <Property Name="Bins" />
               </PropertyMappings>
+            </Expression>
+            <Expression xsi:type="Combinator">
+              <Combinator xsi:type="rx:Zip" />
+            </Expression>
+            <Expression xsi:type="Divide" />
+            <Expression xsi:type="PropertyMapping">
+              <PropertyMappings>
+                <Property Name="Value" />
+              </PropertyMappings>
+            </Expression>
+            <Expression xsi:type="PropertyMapping">
+              <PropertyMappings>
+                <Property Name="HighThreshold" />
+              </PropertyMappings>
+            </Expression>
+            <Expression xsi:type="Combinator">
+              <Combinator xsi:type="p1:DepthTruncate">
+                <p1:HighThreshold>2000</p1:HighThreshold>
+              </Combinator>
             </Expression>
             <Expression xsi:type="Combinator">
               <Combinator xsi:type="dsp:Histogram1D">
@@ -112,15 +121,6 @@
             <Expression xsi:type="MemberSelector">
               <Selector>MaxLocation.X</Selector>
             </Expression>
-            <Expression xsi:type="Combinator">
-              <Combinator xsi:type="rx:Zip" />
-            </Expression>
-            <Expression xsi:type="Divide" />
-            <Expression xsi:type="PropertyMapping">
-              <PropertyMappings>
-                <Property Name="Value" />
-              </PropertyMappings>
-            </Expression>
             <Expression xsi:type="Multiply">
               <Operand xsi:type="IntProperty">
                 <Value>20</Value>
@@ -130,36 +130,36 @@
           </Nodes>
           <Edges>
             <Edge From="0" To="1" Label="Source1" />
-            <Edge From="0" To="4" Label="Source1" />
-            <Edge From="0" To="11" Label="Source1" />
-            <Edge From="1" To="3" Label="Source2" />
-            <Edge From="2" To="3" Label="Source1" />
-            <Edge From="3" To="7" Label="Source1" />
-            <Edge From="4" To="7" Label="Source2" />
+            <Edge From="0" To="5" Label="Source1" />
+            <Edge From="0" To="8" Label="Source1" />
+            <Edge From="1" To="10" Label="Source2" />
+            <Edge From="2" To="9" Label="Source1" />
+            <Edge From="3" To="4" Label="Source1" />
+            <Edge From="3" To="5" Label="Source2" />
+            <Edge From="4" To="10" Label="Source3" />
             <Edge From="5" To="6" Label="Source1" />
-            <Edge From="5" To="11" Label="Source2" />
-            <Edge From="6" To="7" Label="Source3" />
-            <Edge From="7" To="8" Label="Source1" />
-            <Edge From="8" To="9" Label="Source1" />
+            <Edge From="6" To="7" Label="Source1" />
+            <Edge From="7" To="14" Label="Source2" />
+            <Edge From="8" To="9" Label="Source2" />
             <Edge From="9" To="10" Label="Source1" />
-            <Edge From="10" To="14" Label="Source1" />
+            <Edge From="10" To="11" Label="Source1" />
             <Edge From="11" To="12" Label="Source1" />
             <Edge From="12" To="13" Label="Source1" />
-            <Edge From="13" To="14" Label="Source2" />
+            <Edge From="13" To="14" Label="Source1" />
             <Edge From="14" To="15" Label="Source1" />
           </Edges>
         </Workflow>
       </Expression>
       <Expression xsi:type="PropertyMapping">
         <PropertyMappings>
-          <Property Name="FarThresholdValue" />
+          <Property Name="HighThreshold" />
         </PropertyMappings>
       </Expression>
       <Expression xsi:type="Combinator">
         <Combinator xsi:type="p1:DepthTruncate">
-          <p1:FarThresholdValue>340</p1:FarThresholdValue>
+          <p1:HighThreshold>480</p1:HighThreshold>
           <p1:Binary>true</p1:Binary>
-          <p1:Convert8Bit>true</p1:Convert8Bit>
+          <p1:Output8Bit>true</p1:Output8Bit>
         </Combinator>
       </Expression>
       <Expression xsi:type="Combinator">
@@ -184,7 +184,12 @@
         <Selector>Centroid</Selector>
       </Expression>
       <Expression xsi:type="Combinator">
-        <Combinator xsi:type="p1:SetOrigin" />
+        <Combinator xsi:type="p1:SetOrigin">
+          <p1:Size>
+            <p1:Width>0</p1:Width>
+            <p1:Height>0</p1:Height>
+          </p1:Size>
+        </Combinator>
       </Expression>
       <Expression xsi:type="MemberSelector">
         <Selector>Visible</Selector>

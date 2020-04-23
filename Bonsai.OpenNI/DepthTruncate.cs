@@ -4,6 +4,7 @@ using System.ComponentModel;
 using System.Linq;
 using System.Reactive.Linq;
 using System.Runtime.CompilerServices;
+using System.Xml.Schema;
 
 namespace Bonsai.OpenNI
 {
@@ -11,32 +12,32 @@ namespace Bonsai.OpenNI
     public class DepthTruncate : Transform<IplImage, IplImage>
     {
         const int MaxThresholdValue = 4000; // 4 meters when using PixelFormat.Depth1Mm
-        const int DefaultNearThresholdValue = 0;
-        const int DefaultFarThresholdValue = MaxThresholdValue;
+        const int DefaultLowThreshold = 0;
+        const int DefaultHighThreshold = MaxThresholdValue;
         const bool DefaultBinary = false;
-        const bool DefaultConvert8Bit = false;
+        const bool DefaultOutput8Bit = false;
 
         [Range(0, MaxThresholdValue)]
         [Precision(0, 1)]
         [Editor(DesignTypes.SliderEditor, DesignTypes.UITypeEditor)]
-        [Description("The near threshold value used to test individual pixels.")]
-        [DefaultValue(DefaultNearThresholdValue)]
-        public ushort NearThresholdValue { get; set; } = DefaultNearThresholdValue;
+        [Description("The threshold value used to crop lower than values.")]
+        [DefaultValue(DefaultLowThreshold)]
+        public ushort LowThreshold { get; set; } = DefaultLowThreshold;
 
         [Range(0, MaxThresholdValue)]
         [Precision(0, 1)]
         [Editor(DesignTypes.SliderEditor, DesignTypes.UITypeEditor)]
-        [Description("The far threshold value used to test individual pixels.")]
-        [DefaultValue(DefaultFarThresholdValue)]
-        public ushort FarThresholdValue { get; set; } = DefaultFarThresholdValue;
+        [Description("The threshold value used to crop greater than values.")]
+        [DefaultValue(DefaultHighThreshold)]
+        public ushort HighThreshold { get; set; } = DefaultHighThreshold;
 
-        [Description("Binarizes the resulting depth map.")]
+        [Description("Binarizes the resulting depth map when on 8 bit mode.")]
         [DefaultValue(DefaultBinary)]
         public bool Binary { get; set; } = DefaultBinary;
 
         [Description("Converts the resulting depth map to an 8 bit depth map.")]
-        [DefaultValue(DefaultConvert8Bit)]
-        public bool Convert8Bit { get; set; } = DefaultConvert8Bit;
+        [DefaultValue(DefaultOutput8Bit)]
+        public bool Output8Bit { get; set; } = DefaultOutput8Bit;
 
         public override IObservable<IplImage> Process(IObservable<IplImage> source)
             => source.SelectMany(input =>
@@ -44,7 +45,7 @@ namespace Bonsai.OpenNI
                 if (input.Depth != IplDepth.U16)
                     return Observable.Throw<IplImage>(new Exception($"{nameof(DepthTruncate)} can only handle 16 bit single channel depth maps."));
 
-                if (Convert8Bit)
+                if (Output8Bit)
                     return Observable.Return(Process8U(input));
 
                 return Observable.Return(Process16U(input));
@@ -54,24 +55,33 @@ namespace Bonsai.OpenNI
         {
             var output = new IplImage(input.Size, IplDepth.U8, 1);
 
-            if (NearThresholdValue >= FarThresholdValue)
+            if (LowThreshold >= HighThreshold)
             {
                 output.GetMat().SetZero();
             }
-            else if (Binary)
+            else if(Binary)
             {
                 Transform<ushort, byte>(input, output,
-                    value => value >= NearThresholdValue && value < FarThresholdValue
-                        ? byte.MaxValue
-                        : (byte)0);
+                    value =>
+                    {
+                        if (value < LowThreshold || value > HighThreshold)
+                            return byte.MinValue;
+
+                        return byte.MaxValue;
+                    });
             }
             else
             {
-                var scale = (double)byte.MaxValue / (FarThresholdValue - NearThresholdValue);
+                var scale = (double)byte.MaxValue / (HighThreshold - LowThreshold);
                 Transform<ushort, byte>(input, output,
-                    value => value >= NearThresholdValue && value < FarThresholdValue
-                        ? (byte)(scale * (value - NearThresholdValue))
-                        : (byte)0);
+                    value =>
+                    {
+                        if (value < LowThreshold)
+                            return byte.MinValue;
+                        if (value < HighThreshold)
+                            return (byte)(scale * (value - LowThreshold));
+                        return byte.MaxValue;
+                    });
             }
 
             return output;
@@ -81,23 +91,32 @@ namespace Bonsai.OpenNI
         {
             var output = new IplImage(input.Size, IplDepth.U16, 1);
 
-            if (NearThresholdValue >= FarThresholdValue)
+            if (LowThreshold >= HighThreshold)
             {
                 output.GetMat().SetZero();
             }
             else if (Binary)
             {
                 Transform<ushort, ushort>(input, output,
-                    value => value >= NearThresholdValue && value < FarThresholdValue
-                        ? ushort.MaxValue
-                        : (ushort)0);
+                    value =>
+                    {
+                        if (value < LowThreshold || value > HighThreshold)
+                            return ushort.MinValue;
+
+                        return ushort.MaxValue;
+                    });
             }
             else
             {
                 Transform<ushort, ushort>(input, output,
-                    value => value >= NearThresholdValue && value < FarThresholdValue
-                        ? (ushort)(value - NearThresholdValue)
-                        : (ushort)0);
+                    value =>
+                    {
+                        if (value < LowThreshold)
+                            return LowThreshold;
+                        if (value < HighThreshold)
+                            return value;
+                        return HighThreshold;
+                    });
             }
 
             return output;
