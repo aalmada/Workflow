@@ -10,6 +10,8 @@ namespace Bonsai.OpenNI
 {
     public class SetOrigin : Transform<Point2f, SetOrigin.Data>
     {
+        public System.Drawing.Size Size { get; set; }
+
         public override IObservable<Data> Process(IObservable<Point2f> source)
         {
             //var origin = source

@@ -48,7 +48,7 @@ namespace Bonsai.OpenNI
                 if (Output8Bit)
                     return Observable.Return(Process8U(input));
 
-                return Observable.Return(Process16U(input));
+                return Observable.Return(Process16U(input, LowThreshold, HighThreshold, Binary));
             });
 
         IplImage Process8U(IplImage input)
@@ -87,20 +87,20 @@ namespace Bonsai.OpenNI
             return output;
         }
 
-        IplImage Process16U(IplImage input)
+        public static IplImage Process16U(IplImage input, ushort lowThreshold, ushort highThreshold, bool binary = false)
         {
             var output = new IplImage(input.Size, IplDepth.U16, 1);
 
-            if (LowThreshold >= HighThreshold)
+            if (lowThreshold >= highThreshold)
             {
                 output.GetMat().SetZero();
             }
-            else if (Binary)
+            else if (binary)
             {
                 Transform<ushort, ushort>(input, output,
                     value =>
                     {
-                        if (value < LowThreshold || value > HighThreshold)
+                        if (value < lowThreshold || value > highThreshold)
                             return ushort.MinValue;
 
                         return ushort.MaxValue;
@@ -111,11 +111,11 @@ namespace Bonsai.OpenNI
                 Transform<ushort, ushort>(input, output,
                     value =>
                     {
-                        if (value < LowThreshold)
-                            return LowThreshold;
-                        if (value < HighThreshold)
+                        if (value < lowThreshold)
+                            return lowThreshold;
+                        if (value < highThreshold)
                             return value;
-                        return HighThreshold;
+                        return highThreshold;
                     });
             }
 
