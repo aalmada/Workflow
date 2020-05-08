@@ -23,12 +23,12 @@ namespace Bonsai.OpenNI
         [DefaultValue(4000)]
         public ushort MaxDistance { get; set; } = 4000;
 
-        const int bins = 20;
+        const int Bins = 20;
 
         public override IObservable<Result> Process(IObservable<IplImage> source)
             => Observable.Defer(() =>
             {
-                var histogram = new Histogram(1, new[] { bins }, HistogramType.Array, new[] { new float[] { MinDistance, MaxDistance } });
+                var histogram = new Histogram(1, new[] { Bins }, HistogramType.Array, new[] { new float[] { MinDistance, MaxDistance } });
 
                 return source.Select(input =>
                 {
@@ -44,7 +44,7 @@ namespace Bonsai.OpenNI
                     var matHistogram = histogram.Bins
                         .GetMat(true)
                         .Reshape(0, 1)
-                        .GetSubRect(new Rect(binsToIgnore, 0, bins - binsToIgnore, 1));
+                        .GetSubRect(new Rect(binsToIgnore, 0, Bins - binsToIgnore, 1));
                     CV.MinMaxLoc(matHistogram,
                          out var _,
                          out var _,
@@ -52,8 +52,8 @@ namespace Bonsai.OpenNI
                          out var maxLocation);
 
                     // truncate to slighty in front of the user
-                    var userDistance = (binsToIgnore + maxLocation.X) * (MaxDistance / (double)bins);
-                    var delta = (MaxDistance - MinDistance) / (double)bins;
+                    var userDistance = (binsToIgnore + maxLocation.X) * (MaxDistance / (double)Bins);
+                    var delta = (MaxDistance - MinDistance) / (double)Bins;
                     var truncateDistance = userDistance - delta;
                     var truncatedBody = DepthTruncate.Process16U(input, MinDistance, (ushort)truncateDistance);
 
@@ -62,12 +62,12 @@ namespace Bonsai.OpenNI
                     var scale = 255.0 / (truncateDistance - MinDistance);
                     CV.ConvertScale(input, temp, scale, -MinDistance * scale); // threshold can't handle 16 bit images
                     var binary = new IplImage(input.Size, IplDepth.U8, 1);
-                    CV.Threshold(temp, binary, 0, 255, ThresholdTypes.BinaryInv | ThresholdTypes.Otsu);
+                    _ = CV.Threshold(temp, binary, 0, 255, ThresholdTypes.BinaryInv | ThresholdTypes.Otsu);
 
                     // find contours on binarized image
                     using (var storage = new MemStorage())
                     {
-                        CV.FindContours(binary, storage, out var firstContour, Contour.HeaderSize, ContourRetrieval.External, ContourApproximation.ChainApproxSimple);
+                        _ = CV.FindContours(binary, storage, out var firstContour, Contour.HeaderSize, ContourRetrieval.External, ContourApproximation.ChainApproxSimple);
 
                         if (firstContour is null)
                             return Result.Zero;
@@ -77,22 +77,24 @@ namespace Bonsai.OpenNI
                         // Compute centroid components
                         var x = moments.M10 / moments.M00;
                         var y = moments.M01 / moments.M00;
-                        return new Result(1, new Tuple<int, int>((int)x, (int)y));
+                        return new Result(1, new Tuple<int, int>((int)x, (int)y), truncatedBody);
                     }
                 });
             });
 
         public class Result : IEquatable<Result>
         {
-            public static Result Zero = new Result(0, new Tuple<int, int>(0, 0));
+            public static Result Zero = new Result(0, new Tuple<int, int>(0, 0), null);
 
             public int Visible { get; }
             public Tuple<int, int> Position { get; }
+            public IplImage Image { get; }
 
-            public Result(int visible, Tuple<int, int> position)
+            public Result(int visible, Tuple<int, int> position, IplImage image)
             {
                 Visible = visible;
                 Position = position;
+                Image = image;
             }
 
             public bool Equals(Result other)

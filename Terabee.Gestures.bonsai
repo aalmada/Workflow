@@ -1,0 +1,60 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<WorkflowBuilder Version="2.5.0"
+                 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                 xmlns:p1="clr-namespace:Bonsai.OpenNI;assembly=Bonsai.OpenNI"
+                 xmlns="https://bonsai-rx.org/2018/workflow">
+  <Workflow>
+    <Nodes>
+      <Expression xsi:type="Combinator">
+        <Combinator xsi:type="p1:Device">
+          <p1:Index>0</p1:Index>
+        </Combinator>
+      </Expression>
+      <Expression xsi:type="Combinator">
+        <Combinator xsi:type="p1:VideoStream">
+          <p1:Mirroring>true</p1:Mirroring>
+          <p1:Size>
+            <p1:Width>80</p1:Width>
+            <p1:Height>60</p1:Height>
+          </p1:Size>
+        </Combinator>
+      </Expression>
+      <Expression xsi:type="Combinator">
+        <Combinator xsi:type="p1:HandTracker">
+          <p1:MinDistance>0</p1:MinDistance>
+          <p1:MaxDistance>2000</p1:MaxDistance>
+        </Combinator>
+      </Expression>
+      <Expression xsi:type="Combinator">
+        <Combinator xsi:type="p1:HiddenMarkovClassifier">
+          <p1:Database>C:\Users\antao\Documents\gestures.xml</p1:Database>
+        </Combinator>
+      </Expression>
+      <Expression xsi:type="MemberSelector">
+        <Selector>Image</Selector>
+      </Expression>
+      <Expression xsi:type="MemberSelector">
+        <Selector>Visible</Selector>
+      </Expression>
+      <Expression xsi:type="Combinator">
+        <Combinator xsi:type="p1:VideoStream">
+          <p1:SensorType>Ir</p1:SensorType>
+          <p1:Mirroring>true</p1:Mirroring>
+          <p1:PixelFormat>Gray16</p1:PixelFormat>
+          <p1:Size>
+            <p1:Width>80</p1:Width>
+            <p1:Height>60</p1:Height>
+          </p1:Size>
+        </Combinator>
+      </Expression>
+    </Nodes>
+    <Edges>
+      <Edge From="0" To="1" Label="Source1" />
+      <Edge From="0" To="6" Label="Source1" />
+      <Edge From="1" To="2" Label="Source1" />
+      <Edge From="2" To="3" Label="Source1" />
+      <Edge From="2" To="4" Label="Source1" />
+      <Edge From="2" To="5" Label="Source1" />
+    </Edges>
+  </Workflow>
+</WorkflowBuilder>
