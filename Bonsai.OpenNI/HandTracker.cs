@@ -23,6 +23,13 @@ namespace Bonsai.OpenNI
         [DefaultValue(4000)]
         public ushort MaxDistance { get; set; } = 4000;
 
+        [Range(0, 255)]
+        [Precision(0, 1)]
+        [Editor(DesignTypes.SliderEditor, DesignTypes.UITypeEditor)]
+        [Description("The minimum area of the blob.")]
+        [DefaultValue(100)]
+        public ushort MinArea { get; set; } = 10;
+
         const int Bins = 20;
 
         public override IObservable<Result> Process(IObservable<IplImage> source)
@@ -65,20 +72,44 @@ namespace Bonsai.OpenNI
                     _ = CV.Threshold(temp, binary, 0, 255, ThresholdTypes.BinaryInv | ThresholdTypes.Otsu);
 
                     // find contours on binarized image
-                    using (var storage = new MemStorage())
+                    using var storage = new MemStorage();
+                    _ = CV.FindContours(binary, storage, out var firstContour, Contour.HeaderSize, ContourRetrieval.External, ContourApproximation.ChainApproxSimple);
+
+                    // get the largest contour
+                    Seq largestCountour = null;
+                    //Moments largestMoments = default;
+                    var largestArea = 0.0;
+                    for (var contour = firstContour; contour is object; contour = contour.HNext)
                     {
-                        _ = CV.FindContours(binary, storage, out var firstContour, Contour.HeaderSize, ContourRetrieval.External, ContourApproximation.ChainApproxSimple);
+                        //var moments = new Moments(contour);
+                        //var area = moments.M00;
 
-                        if (firstContour is null)
-                            return Result.Zero;
+                        var box = CV.BoundingRect(contour);
+                        var area = box.Width * box.Height;
 
-                        var moments = new Moments(firstContour);
-
-                        // Compute centroid components
-                        var x = moments.M10 / moments.M00;
-                        var y = moments.M01 / moments.M00;
-                        return new Result(1, new Tuple<int, int>((int)x, (int)y), truncatedBody);
+                        if (area > MinArea && area > largestArea)
+                        {
+                            largestArea = area;
+                            largestCountour = contour;
+                            //largestMoments = moments;
+                        }
                     }
+
+                    var contoursImages = new IplImage(input.Size, IplDepth.U8, 1);
+                    CV.SetIdentity(contoursImages, Scalar.All(0));
+
+                    if (largestCountour is null)
+                        return new Result(0, new Tuple<int, int>(0, 0), contoursImages);
+
+                    // draw largest contour
+                    CV.DrawContours(contoursImages, largestCountour, Scalar.All(255), Scalar.All(0), 0);
+
+                    // Compute centroid components
+                    var moments = new Moments(largestCountour);
+                    var x = moments.M10 / moments.M00;
+                    var y = moments.M01 / moments.M00;
+
+                    return new Result(1, new Tuple<int, int>((int)x, (int)y), contoursImages);
                 });
             });
 

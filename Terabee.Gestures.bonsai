@@ -23,11 +23,13 @@
         <Combinator xsi:type="p1:HandTracker">
           <p1:MinDistance>0</p1:MinDistance>
           <p1:MaxDistance>2000</p1:MaxDistance>
+          <p1:MinArea>15</p1:MinArea>
         </Combinator>
       </Expression>
       <Expression xsi:type="Combinator">
         <Combinator xsi:type="p1:HiddenMarkovClassifier">
           <p1:Database>C:\Users\antao\Documents\gestures.xml</p1:Database>
+          <p1:MinLength>30</p1:MinLength>
         </Combinator>
       </Expression>
       <Expression xsi:type="MemberSelector">

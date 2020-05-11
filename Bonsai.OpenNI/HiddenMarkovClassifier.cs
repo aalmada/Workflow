@@ -5,6 +5,7 @@ using Accord.Statistics.Models.Markov;
 using Accord.Statistics.Models.Markov.Learning;
 using Accord.Statistics.Models.Markov.Topology;
 using Gestures.HMMs;
+using NetFabric;
 using OpenCV.Net;
 using System;
 using System.ComponentModel;
@@ -12,6 +13,7 @@ using System.IO;
 using System.Linq;
 using System.Reactive;
 using System.Reactive.Linq;
+using System.Security.Cryptography;
 
 namespace Bonsai.OpenNI
 {
@@ -21,6 +23,12 @@ namespace Bonsai.OpenNI
         [FileNameFilter("XML Files (*.xml)|*.xml|All Files|*.*")]
         [Editor("Bonsai.Design.OpenFileNameEditor, Bonsai.Design", DesignTypes.UITypeEditor)] 
         public string Database { get; set; }
+
+        [Description("The minimum total length in pixels for the gesture.")]
+        public int MinGestureLength { get; set; } = 15;
+
+        [Description("The maximum distance in pixels between two points in the gesture.")]
+        public int MaxGesturesSpeed { get; set; } = 20;
 
         public override IObservable<string> Process(IObservable<HandTracker.Result> source)
              => Observable.Defer(() =>
@@ -84,6 +92,20 @@ namespace Bonsai.OpenNI
                  return source
                     .Window(start, _ => end)
                     .Select(window => window.Select(result => result.Position).ToArray()
+                        .Where(points =>
+                        {
+                            if (points.Length < 2)
+                                return false;
+
+                            var length = 0.0;
+                            for (var index = 1; index < points.Length; index++)
+                            {
+                                var distance = Distance(points[index - 1], points[index]);
+                                if (distance < MaxGesturesSpeed)
+                                    length += distance;
+                            }
+                            return length > MinGestureLength;
+                        })
                         .Select(points =>
                         {
                             var index = hmm.Decide(Preprocess(points));
@@ -95,11 +117,16 @@ namespace Bonsai.OpenNI
         {
             var result = new double[sequence.Length][];
             for (var index = 0; index < sequence.Length; index++)
+            {
                 result[index] = new double[] { sequence[index].Item1, sequence[index].Item2 };
+            }
 
             var zscores = Accord.Statistics.Tools.ZScores(result);
 
             return zscores.Add(10);
         }
+
+        static double Distance(Tuple<int, int> from, Tuple<int, int> to)
+            => Math.Sqrt(Math.Pow(to.Item1 - from.Item1, 2.0) + Math.Pow(to.Item2 - from.Item2, 2.0));
     }
 }
